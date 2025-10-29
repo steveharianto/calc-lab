@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>calc-lab</title>
+<style>
+  :root{
+    --bg:#fbfbfd; --ink:#111827; --muted:#6b7280; --panel:#ffffff; --grid:#e9ecf1;
+    --chip:#eef2ff; --chipText:#4338ca; --btn:#f3f4f6; --btn-border:#e5e7eb;
+    --accent:#2563eb; --accent-ink:#ffffff; --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  *{box-sizing:border-box;font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+
+  .shell{display:flex;width:100%}
+  .sidebar{width:320px;min-width:320px;background:var(--panel);border-right:1px solid #eee;padding:20px}
+  .sidebar h2{margin:0 0 12px;font-size:16px;font-weight:800}
+  .concept{display:grid;gap:10px}
+  .card{border:1px solid #eef0f3;background:#fff;border-radius:12px;padding:12px}
+  .badge{display:inline-block;background:var(--chip);color:var(--chipText);font-weight:700;font-size:12px;
+         padding:3px 8px;border-radius:999px;margin-bottom:6px}
+  .concept .k{color:var(--muted);font-size:12px}
+  .concept .mono{font-family:var(--mono)}
+
+  .main{flex:1;display:flex;flex-direction:column;position:relative;
+    background:radial-gradient(circle at 1px 1px, var(--grid) 1px, transparent 1px) 0 0/20px 20px;}
+  .header{text-align:center;padding:28px 16px 8px}
+  .title{margin:0;letter-spacing:.4px;font-weight:800;font-size:28px;color:#c9cdd6;opacity:.75;text-shadow:0 1px 0 #fff}
+  .by{margin-top:6px;font-size:12px;color:#b6bac4}
+
+  .center{flex:1;display:flex;align-items:center;justify-content:center;padding:20px}
+  .result-box{
+    width:min(980px,95%); background:#fff; border:1px solid #e5e7eb; border-radius:14px;
+    box-shadow:0 4px 16px rgba(0,0,0,.04); padding:16px 18px;
+  }
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .pill{background:#f1f5f9;border:1px solid #e2e8f0;color:#0f172a;padding:6px 10px;border-radius:999px;font-size:12px}
+  .expr-view{font-family:var(--mono);font-size:14px;background:#f8fafc;border:1px dashed #e2e8f0;border-radius:8px;padding:8px 10px;overflow-x:auto}
+  .steps-list{counter-reset:step;display:grid;gap:8px;margin:10px 0 6px}
+  .step-item{position:relative;background:#fafafa;border:1px solid #eee;border-radius:10px;padding:10px 12px}
+  .step-item::before{
+    counter-increment:step; content:counter(step);
+    position:absolute; left:-10px; top:-10px; width:24px; height:24px; border-radius:999px;
+    background:#111827;color:#fff; font-size:12px; display:flex;align-items:center;justify-content:center; box-shadow:0 2px 8px rgba(0,0,0,.1)
+  }
+  .mono{font-family:var(--mono)}
+  .out{font-family:var(--mono); background:#f0f9ff; border:1px solid #bfdbfe; color:#0c4a6e; padding:8px 10px; border-radius:8px}
+
+  .dock{padding:14px 16px;background:linear-gradient(180deg, transparent, rgba(255,255,255,.8));border-top:1px solid #eef0f3}
+  .dock-inner{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:10px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  .key{background:var(--btn);border:1px solid var(--btn-border);border-radius:8px;padding:8px 10px;font-size:16px;cursor:pointer}
+  .key:hover{background:#eef2f7}
+  .expr{flex:1;border:1px solid var(--btn-border);background:#fff;border-radius:12px;padding:12px 14px;font-size:16px}
+  .expr::placeholder{color:#c0c6cf}
+  .enter{border:none;background:var(--accent);color:var(--accent-ink);font-weight:700;border-radius:10px;padding:10px 16px;cursor:pointer;font-size:15px}
+  .enter:hover{filter:brightness(0.95)}
+
+  @media (max-width:900px){ .sidebar{display:none} }
+</style>
+
+<!-- Offline Nerdamer -->
+<script src="./nerdamer.core.js"></script>
+<script src="./Algebra.js"></script>
+<script src="./Calculus.js"></script>
+<script src="./Solve.js"></script>
+</head>
+<body>
+<div class="shell">
+  <!-- LEFT: Penjelasan Konsep -->
+  <aside class="sidebar">
+    <h2>Penjelasan Konsep :</h2>
+    <div id="concept" class="concept">
+      <div class="card"><div class="badge">Mulai</div><div class="k">Ketik ekspresi lalu tekan <b>Enter</b>. Gunakan tombol simbol untuk template cepat.</div></div>
+    </div>
+  </aside>
+
+  <!-- RIGHT: UI -->
+  <main class="main">
+    <div class="header">
+      <h1 class="title">calc-lab</h1>
+      <div class="by">By Steven</div>
+    </div>
+
+    <div class="center">
+      <div id="centerBox" class="result-box">
+        <div class="row"><span class="pill">Siap</span><div class="expr-view mono">Masukkan fungsi matematika…</div></div>
+      </div>
+    </div>
+
+    <div class="dock">
+      <div class="dock-inner">
+        <div class="toolbar">
+          <button class="key" data-insert="^">^</button>
+          <button class="key" data-paren="√">√</button>
+          <button class="key" data-paren="∫">∫</button>
+          <button class="key" data-insert="π">π</button>
+          <button class="key" data-insert="/">/</button>
+          <button class="key" data-paren="d/dx">d/dx</button>
+          <button class="key" data-paren="lim">lim</button>
+          <button class="key" data-paren="∑">∑</button>
+        </div>
+        <input id="expr" class="expr" type="text"
+          placeholder="Contoh: ∫( 2x^2+3x+5 ), d/dx( sin(x) ), lim( (sin(x))/x, x, 0 ), ∑( i^2, i, 1, 10 )" />
+        <button id="eval" class="enter">Enter</button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+window.addEventListener('load', () => {
+  if (typeof nerdamer === 'undefined') {
+    alert('Nerdamer tidak ter-load. Pastikan file JS lokal berada di folder yang sama.');
+    return;
+  }
+
+  const $ = s => document.querySelector(s);
+  const exprEl = $('#expr');
+  const conceptEl = $('#concept');
+  const centerBox = $('#centerBox');
+
+  // ===== insert helpers =====
+  function insertAtCursor(text){
+    const el = exprEl; const s = el.selectionStart ?? el.value.length; const e = el.selectionEnd ?? el.value.length;
+    el.value = el.value.slice(0,s) + text + el.value.slice(e);
+    const pos = s + text.length; el.focus(); el.setSelectionRange(pos,pos);
+  }
+  function insertWithParens(symbol){
+    const chunk = symbol + '( )';
+    insertAtCursor(chunk);
+    const i = (exprEl.selectionStart ?? el.value?.length ?? 0) - 1;
+    const left = exprEl.value.lastIndexOf('( )', i - 1);
+    if (left >= 0) { const caret = left + 1; exprEl.setSelectionRange(caret, caret); }
+  }
+
+  // ===== util =====
+  const FUNS = ['sin','cos','tan','sqrt','exp','log','ln','integrate','diff','limit','sum','abs'];
+  function firstVarGuess(f){ const m = (f||'').match(/[a-zA-Z]/); return m ? m[0] : 'x'; }
+  function escapeHTML(s){return s.replace(/[&<>]/g,c=>({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c]));}
+
+  // ===== normalizer (ke komputasi) =====
+  function normalizeInput(src){
+    let r = src
+      .replace(/π/g,'pi').replace(/÷/g,'/').replace(/×/g,'*')
+      .replace(/√\s*\(/g,'sqrt(').replace(/∫\s*\(/g,'integrate(')
+      .replace(/d\/dx\s*\(/gi,'diff(').replace(/lim\s*\(/gi,'limit(')
+      .replace(/∑\s*\(/g,'sum(').replace(/\(\s*\)/g,'()')
+      .replace(/\s+/g,' ').trim();
+
+    r = r.replace(/(\d)\s*([A-Za-z(])/g, '$1*$2');      // 5x, 2(
+    r = r.replace(/\)\s*(?=[\da-zA-Z(])/g, ')*');       // )x, )2, )(
+
+    r = r.replace(/([A-Za-z]+)\s*\(/g,(m,name)=>FUNS.includes(name)?`${name}(`:`${name}*(`);
+
+    // Lengkapi argumen default (integrate(F) / diff(F) → ,x)
+    r = ensureArgs(r);
+    return r;
+  }
+
+  function ensureArgs(expr){
+    const m = expr.match(/^([a-zA-Z_]\w*)\s*\((.*)\)$/);
+    if(!m) return expr;
+    const fn = m[1];
+    const args = parseTopLevel(expr);
+    if((fn==='integrate' || fn==='diff') && args.length===1){
+      const v = firstVarGuess(args[0]);
+      const i = expr.lastIndexOf(')');
+      if(i>-1) return expr.slice(0,i)+`,`+v+expr.slice(i);
+    }
+    return expr;
+  }
+
+  // ===== pretty-printer (tampilan dengan × dan superscript) =====
+  function prettyMath(s){
+    let t = escapeHTML(s);
+
+    // fungsi → simbol
+    t = t.replace(/integrate\s*\(/g,'∫(')
+         .replace(/diff\s*\(/g,'d/dx(')
+         .replace(/sqrt\s*\(/g,'√(')
+         .replace(/limit\s*\(/g,'lim(')
+         .replace(/sum\s*\(/g,'∑(')
+         .replace(/\bpi\b/g,'π');
+
+    // pangkat superscript
+    t = t.replace(/([A-Za-z0-9\]\)])\^(-?\d+)/g, (_,base,pow)=> `${base}<sup>${pow}</sup>`);
+    t = t.replace(/(\))\s*\^\s*(-?\d+)/g, (_,base,pow)=> `${base}<sup>${pow}</sup>`);
+
+    // kali tampil ×
+    t = t.replace(/\*/g,' × ');
+
+    // rapi spasi
+    t = t.replace(/\s+([)\]])/g,'$1').replace(/([(\[])\s+/g,'$1');
+    return t;
+  }
+
+  // ===== parser =====
+  function parseTopLevel(call){
+    const m = call.match(/^[a-zA-Z_]\w*\s*\((.*)\)\s*$/); if(!m) return [];
+    const s = m[1]; let parts=[], cur='', depth=0;
+    for(const ch of s){
+      if(ch==='('){depth++;cur+=ch;}
+      else if(ch===')'){depth--;cur+=ch;}
+      else if(ch===',' && depth===0){parts.push(cur.trim());cur='';}
+      else cur+=ch;
+    }
+    if(cur.trim()) parts.push(cur.trim());
+    return parts;
+  }
+
+  // ===== konsep (pakai prettyMath) =====
+  function conceptCard(title, rawItems){
+    const div = document.createElement('div');
+    div.className='card';
+    div.innerHTML = `<div class="badge">${title}</div>` +
+      rawItems.map(x=>`<div class="k mono">${prettyMath(x)}</div>`).join('');
+    return div;
+  }
+  function setConceptFor(op, detail){
+    conceptEl.innerHTML = '';
+    if(op==='integrate'){
+      conceptEl.append(conceptCard('Power Rule', [
+        '∫ a·x^n dx = a·x^(n+1)/(n+1) + C  (n≠−1)',
+        'Linearitas: ∫(f+g) = ∫f + ∫g'
+      ]));
+      conceptEl.append(conceptCard('Khusus', [
+        '∫ (1/x) dx = ln|x| + C',
+        '∫ sin(x) dx = −cos(x) + C;  ∫ cos(x) dx = sin(x) + C'
+      ]));
+    } else if(op==='diff'){
+      conceptEl.append(conceptCard('Aturan Turunan', [
+        'd/dx (x^n) = n·x^(n−1)',
+        'd/dx [f+g] = f\' + g\'',
+        'd/dx sin(x) = cos(x);  d/dx cos(x) = −sin(x)'
+      ]));
+      conceptEl.append(conceptCard('Chain Rule', [
+        '(h∘g)\'(x) = h\'(g(x)) · g\'(x)'
+      ]));
+    } else if(op==='limit'){
+      conceptEl.append(conceptCard('Strategi Limit', [
+        'Substitusi langsung; bila 0/0 → faktorisasi / L’Hôpital',
+        'lim x→0  sin(x)/x = 1'
+      ]));
+    } else if(op==='sum'){
+      conceptEl.append(conceptCard('Rumus Jumlah', [
+        'Σ i = n(n+1)/2',
+        'Σ i^2 = n(n+1)(2n+1)/6',
+        'Σ i^3 = [n(n+1)/2]^2'
+      ]));
+      conceptEl.append(conceptCard('Linearitas', [
+        'Σ (A·i + C) = A·Σ i + C·Σ 1'
+      ]));
+    } else {
+      conceptEl.append(conceptCard('Info', [
+        'Simbol tampil asli: π, √, ∫, d/dx, lim, Σ; kali = ×; pangkat = superscript'
+      ]));
+    }
+    if(detail){ conceptEl.append(conceptCard('Catatan', [detail])); }
+  }
+
+  // ===== langkah =====
+  function stepsIntegral(src, outSym){
+    let [f,v]=parseTopLevel(src);
+    if(!v) v = firstVarGuess(f);
+    const steps=[];
+    steps.push({t:`Identifikasi integran`, d:`f(${v}) = ${f}`});
+    const pow = f && f.match(new RegExp(`^\\s*([0-9.+-]*)\\s*\\*?\\s*(${v})\\s*\\^\\s*([0-9.+-]+)\\s*$`));
+    if (pow){
+      const a = pow[1]===''?1:Number(pow[1]), n=Number(pow[3]);
+      if(n!==-1){
+        steps.push({t:`Power rule`, d:`∫ a·${v}^${n} d${v} = a·${v}^${n+1}/(${n+1}) + C  (a=${a})`});
+      } else steps.push({t:`Kasus n = −1`, d:`∫ 1/${v} d${v} = ln|${v}| + C`});
+    } else if (/[\+\-]/.test(f||'')){
+      steps.push({t:`Linearity`, d:`Pisah tiap suku → integralkan → gabung + C`});
+    } else {
+      steps.push({t:`Antiturunan simbolik`, d:`CAS mencari antiturunan & simplify`});
+    }
+    steps.push({t:`Hasil`, d:`${outSym} + C`});
+    setConceptFor('integrate');
+    return steps;
+  }
+  function stepsDerivative(src, outSym){
+    const [f,v0]=parseTopLevel(src); const v = v0 || firstVarGuess(f);
+    const steps=[];
+    steps.push({t:`Identifikasi fungsi`, d:`f(${v}) = ${f}`});
+    if(/\^/.test(f||'')) steps.push({t:`Aturan pangkat`, d:`d/d${v} (x^n) = n·x^(n−1)`});
+    if(/sin\(/.test(f||'')) steps.push({t:`Turunan sin`, d:`d/d${v} sin(${v}) = cos(${v})`});
+    if(/cos\(/.test(f||'')) steps.push({t:`Turunan cos`, d:`d/d${v} cos(${v}) = −sin(${v})`});
+    if(!steps.some(s=>/Aturan|Turunan/.test(s.t))) steps.push({t:`Turunan simbolik`, d:`CAS + simplify`});
+    steps.push({t:`Hasil`, d:`${outSym}`});
+    setConceptFor('diff');
+    return steps;
+  }
+  function stepsLimit(src, outSym){
+    const [f,v,a]=parseTopLevel(src);
+    const varname = v || firstVarGuess(f);
+    const steps=[];
+    steps.push({t:`Definisi`, d:`lim ${varname}→${a||'0'} ${f}`});
+    const rat = f && f.match(/^\s*\(?(.+)\)?\s*\/\s*\(?(.+)\)?\s*$/);
+    if(rat){ steps.push({t:`Substitusi`, d:`Jika 0/0 → faktorisasi atau L’Hôpital`}); }
+    else if (f && /sin\s*\(\s*[^)]*\b(?:x)\b[^)]*\s*\)\s*\/\s*\b(?:x)\b/.test(f) && ((a||'0')==='0')){
+      steps.push({t:`Limit standar`, d:`lim x→0 sin(x)/x = 1`});
+    } else { steps.push({t:`Simplifikasi`, d:`Substitusi & aljabar`}); }
+    steps.push({t:`Hasil`, d:`${outSym}`});
+    setConceptFor('limit');
+    return steps;
+  }
+  function stepsSigma(src, outSym){
+    const [term,idx,a,b]=parseTopLevel(src);
+    const steps=[];
+    steps.push({t:`Bentuk Σ`, d:`Σ ${term}, ${idx||'i'}=${a||'1'}…${b||'n'}`});
+    if(term===idx) steps.push({t:`Σ i`, d:`n(n+1)/2`});
+    else if(term===`${idx}^2`) steps.push({t:`Σ i^2`, d:`n(n+1)(2n+1)/6`});
+    else if(term===`${idx}^3`) steps.push({t:`Σ i^3`, d:`[n(n+1)/2]^2`});
+    else steps.push({t:`Linearitas/bentuk tertutup`, d:`Pisah koefisien & konstanta`});
+    steps.push({t:`Hasil`, d:`${outSym}`});
+    setConceptFor('sum');
+    return steps;
+  }
+  function buildSteps(src, outSym){
+    if(/^integrate\s*\(/i.test(src)) return stepsIntegral(src, outSym);
+    if(/^diff\s*\(/i.test(src))      return stepsDerivative(src, outSym);
+    if(/^limit\s*\(/i.test(src))     return stepsLimit(src, outSym);
+    if(/^sum\s*\(/i.test(src))       return stepsSigma(src, outSym);
+    setConceptFor('other','Ekspresi umum dinormalisasi lalu dievaluasi simbolik.');
+    return [{t:'Evaluasi simbolik', d:`${outSym}`}];
+  }
+
+  // ===== render tengah =====
+  function renderResult(exprRaw, steps, outSym){
+    centerBox.innerHTML = `
+      <div class="row">
+        <span class="pill">Expression</span>
+        <div class="expr-view mono">${prettyMath(exprRaw)}</div>
+      </div>
+      <div class="row"><span class="pill">Langkah</span></div>
+      <div class="steps-list">
+        ${steps.map(s=>`
+          <div class="step-item">
+            <div><b>${s.t}</b></div>
+            <div class="mono" style="margin-top:2px">${prettyMath(s.d)}</div>
+          </div>`).join('')}
+      </div>
+      <div class="row"><span class="pill">Hasil</span></div>
+      <div class="out mono">${prettyMath(outSym)}</div>
+    `;
+  }
+
+  // ===== evaluator =====
+  function evaluateNow(){
+    const rawVisible = exprEl.value.trim();
+    if(!rawVisible){
+      centerBox.innerHTML = `<div class="row"><span class="pill">Siap</span><div class="expr-view mono">Masukkan fungsi matematika…</div></div>`;
+      setConceptFor('other');
+      return;
+    }
+    const src = normalizeInput(rawVisible);
+    try{
+      const sym = nerdamer(src);
+      const outSym = sym.toString();
+      const steps = buildSteps(src, outSym);
+      renderResult(rawVisible, steps, outSym);
+    }catch(e){
+      centerBox.innerHTML = `<div class="row"><span class="pill">Error</span><div class="expr-view mono">${escapeHTML(e && e.message ? e.message : String(e))}</div></div>`;
+      setConceptFor('other','Periksa tanda kurung/komanya. Gunakan tombol template untuk struktur aman.');
+    }
+  }
+
+  // ===== wiring =====
+  document.querySelectorAll('.key[data-insert]').forEach(b=>b.addEventListener('click',()=>insertAtCursor(b.dataset.insert)));
+  document.querySelectorAll('.key[data-paren]').forEach(b=>b.addEventListener('click',()=>insertWithParens(b.dataset.paren)));
+  document.getElementById('eval').addEventListener('click', evaluateNow);
+  exprEl.addEventListener('keydown', e=>{
+    if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); evaluateNow(); }
+    if((e.ctrlKey||e.metaKey) && e.key==='Enter'){ e.preventDefault(); evaluateNow(); }
+  });
+});
+</script>
+</body>
+</html>
